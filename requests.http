@@ -1,0 +1,11 @@
+### Rail predictions
+GET https://api.wmata.com/StationPrediction.svc/json/GetPrediction/E04
+api_key: {{$dotenv WMATA_KEY}}
+
+### Bus predictions
+GET https://api.wmata.com/NextBusService.svc/json/jPredictions?StopID=1001195
+api_key: {{$dotenv WMATA_KEY}}
+
+### Rail incidents
+GET https://api.wmata.com/Incidents.svc/json/Incidents
+api_key: {{$dotenv WMATA_KEY}}

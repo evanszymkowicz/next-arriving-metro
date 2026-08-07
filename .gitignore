@@ -1,0 +1,7 @@
+/node_modules
+package-lock.json
+.env
+.DS_Store
+
+# Playwright MCP scratch output (snapshots/console logs from dev-server testing)
+.playwright-mcp/
