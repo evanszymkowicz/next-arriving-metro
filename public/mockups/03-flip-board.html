@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flip Board — Landscape Display</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0F0E0C;
+    --board-bg: #1A1815;
+    --surface: #222019;
+    --row-bg: #252219;
+    --flap-border: #2E2B24;
+    --text: #E8DFC8;
+    --text-dim: #8C836E;
+    --amber: #D4A03C;
+    --amber-dim: #9E7A2E;
+    --amber-glow: rgba(212,160,60,0.12);
+    --red: #C44B3F;
+    --green: #5E9E54;
+  }
+  [data-mode="light"] {
+    --bg: #F5F0E8;
+    --board-bg: #FFFFFF;
+    --surface: #F0EBE3;
+    --row-bg: #E8E3DC;
+    --flap-border: #D8D3CC;
+    --text: #1A1A1A;
+    --text-dim: #6B6560;
+    --amber: #3A2C26;
+    --amber-dim: #2A1F1A;
+    --amber-glow: rgba(122,92,46,0.15);
+  }
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Archivo', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr 320px;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+  }
+  /* Header */
+  .header {
+    grid-column: 1 / -1;
+    padding: 20px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--flap-border);
+    text-align: center;
+  }
+  .station-name {
+    font-size: 2.4rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--amber);
+    text-shadow: 0 0 30px var(--amber-glow);
+  }
+  .station-clock {
+    width: 140px;
+    height: 140px;
+    margin-top: 12px;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
+  }
+  .clock-bezel {
+    fill: none;
+    stroke: var(--amber);
+    stroke-width: 2.5;
+  }
+  .clock-face {
+    fill: var(--bg);
+    stroke: var(--amber);
+    stroke-width: 0.5;
+  }
+  .clock-min-ticks line {
+    stroke: var(--amber);
+    stroke-width: 0.5;
+  }
+  .clock-numerals {
+    fill: var(--amber);
+  }
+  .clock-cap {
+    fill: var(--amber);
+  }
+  .clock-hand {
+    stroke: var(--amber);
+  }
+  .clock-hand.second {
+    stroke: var(--red);
+  }
+  [data-mode="light"] .clock-face {
+    fill: var(--bg);
+  }
+  [data-mode="light"] .clock-bezel {
+    stroke: var(--amber);
+    stroke-width: 3;
+  }
+  /* Platform columns */
+  .platform {
+    padding: 16px 20px;
+    overflow: hidden;
+  }
+  .platform + .platform { border-left: 1px solid var(--flap-border); }
+  .section-header {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--amber-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--flap-border);
+  }
+  /* Flip board */
+  .flip-board {
+    background: var(--board-bg);
+    border: 1px solid var(--flap-border);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.02);
+    margin-bottom: 14px;
+  }
+  .flip-row {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    background: var(--row-bg);
+  }
+  .flip-row:last-child { border-bottom: none; }
+  @keyframes flipIn {
+    from { opacity: 0; transform: perspective(200px) rotateX(-10deg); }
+    to { opacity: 1; transform: perspective(200px) rotateX(0); }
+  }
+  .flap-indicator {
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 0.8rem;
+    letter-spacing: 0.06em;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06);
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%);
+  }
+  .flap-indicator::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0; top: 50%;
+    height: 1px;
+    background: rgba(0,0,0,0.3);
+  }
+  .flap-indicator.red { background-color: #BF0D3B; color: #fff; }
+  .flap-indicator.orange { background-color: #ED8B00; color: #fff; }
+  .flap-indicator.silver { background-color: #939597; color: #1a1a1a; }
+  .flap-indicator.blue { background-color: #005EAA; color: #fff; }
+  .flap-indicator.yellow { background-color: #FFD100; color: #1a1a1a; }
+  .flap-indicator.green { background-color: #008A52; color: #fff; }
+  .flap-indicator.bus-flap {
+    background-color: var(--surface);
+    color: var(--amber);
+    border: 1px solid var(--flap-border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 500;
+  }
+  .flip-dest-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .flip-dest-via {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    margin-top: 1px;
+    letter-spacing: 0.02em;
+  }
+  .flip-minutes {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: var(--amber);
+    line-height: 1;
+    text-shadow: 0 0 20px var(--amber-glow);
+    text-align: right;
+    min-width: 70px;
+  }
+  .flip-minutes.arriving {
+    color: var(--red);
+    text-shadow: 0 0 20px rgba(196,75,63,0.3);
+    animation: amberPulse 1.5s ease-in-out infinite;
+  }
+  .flip-unit {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-top: 3px;
+    text-align: right;
+  }
+  @keyframes amberPulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  /* Sidebar */
+  .sidebar {
+    border-left: 1px solid var(--flap-border);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+  }
+  .status-strip {
+    background: var(--surface);
+    border: 1px solid var(--flap-border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .status-led {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: ledBlink 2.5s ease-in-out infinite;
+  }
+  @keyframes ledBlink { 0%,100%{opacity:1;box-shadow:0 0 6px var(--green)} 50%{opacity:0.5;box-shadow:0 0 2px var(--green)} }
+  .status-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+  .status-text strong { color: var(--text); font-weight: 500; }
+  .advisory-strip {
+    padding: 10px 14px;
+    background: rgba(212,160,60,0.06);
+    border: 1px solid rgba(212,160,60,0.12);
+    border-radius: 6px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--amber);
+    line-height: 1.6;
+  }
+  .adv-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 4px;
+  }
+  .sidebar-footer {
+    margin-top: auto;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <div class="header">
+    <div class="station-name">Metro Center</div>
+    <svg class="station-clock" viewBox="0 0 100 100" id="analog-clock">
+      <!-- Outer bezel -->
+      <circle class="clock-bezel" cx="50" cy="50" r="49"/>
+      <circle class="clock-face" cx="50" cy="50" r="46"/>
+      <!-- Minute ticks -->
+      <g class="clock-min-ticks">
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(6 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(12 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(18 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(24 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(36 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(42 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(48 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(54 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(66 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(72 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(78 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(84 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(96 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(102 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(108 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(114 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(126 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(132 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(138 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(144 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(156 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(162 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(168 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(174 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(186 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(192 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(198 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(204 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(216 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(222 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(228 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(234 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(246 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(252 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(258 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(264 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(276 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(282 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(288 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(294 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(306 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(312 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(318 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(324 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(336 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(342 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(348 50 50)"/>
+        <line x1="50" y1="3" x2="50" y2="6" transform="rotate(354 50 50)"/>
+      </g>
+      <!-- Hour numerals -->
+      <g class="clock-numerals" font-family="Georgia, 'Times New Roman', serif" font-size="7" font-weight="700" text-anchor="middle" dominant-baseline="central">
+        <text x="50" y="16">XII</text>
+        <text x="68" y="19">I</text>
+        <text x="81" y="32">II</text>
+        <text x="85" y="50">III</text>
+        <text x="81" y="68">IV</text>
+        <text x="68" y="81">V</text>
+        <text x="50" y="85">VI</text>
+        <text x="32" y="81">VII</text>
+        <text x="19" y="68">VIII</text>
+        <text x="15" y="50">IX</text>
+        <text x="19" y="32">X</text>
+        <text x="32" y="19">XI</text>
+      </g>
+      <!-- Center cap -->
+      <circle class="clock-cap" cx="50" cy="50" r="3"/>
+      <!-- Hands -->
+      <line class="clock-hand hour" x1="50" y1="50" x2="50" y2="28" stroke-width="3" stroke-linecap="round"/>
+      <line class="clock-hand minute" x1="50" y1="50" x2="50" y2="18" stroke-width="2" stroke-linecap="round"/>
+      <line class="clock-hand second" x1="50" y1="56" x2="50" y2="12" stroke-width="1"/>
+    </svg>
+  </div>
+
+  <!-- Toward Shady Grove / Vienna / Ashburn -->
+  <div class="platform">
+    <div class="section-header">Toward Shady Grove · Vienna · Ashburn</div>
+    <div class="flip-board">
+      <div class="flip-row">
+        <div class="flap-indicator red">R</div>
+        <div>
+          <div class="flip-dest-name">Shady Grove</div>
+          <div class="flip-dest-via">via Farragut North · Dupont Circle</div>
+        </div>
+        <div>
+          <div class="flip-minutes arriving">ARR</div>
+          <div class="flip-unit">arriving</div>
+        </div>
+      </div>
+      <div class="flip-row">
+        <div class="flap-indicator silver">S</div>
+        <div>
+          <div class="flip-dest-name">Ashburn</div>
+          <div class="flip-dest-via">via Foggy Bottom · Rosslyn</div>
+        </div>
+        <div>
+          <div class="flip-minutes">2</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+      <div class="flip-row">
+        <div class="flap-indicator blue">B</div>
+        <div>
+          <div class="flip-dest-name">Downtown Largo</div>
+          <div class="flip-dest-via">via Stadium-Armory · Morgan Blvd</div>
+        </div>
+        <div>
+          <div class="flip-minutes">4</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+      <div class="flip-row">
+        <div class="flap-indicator orange">O</div>
+        <div>
+          <div class="flip-dest-name">Vienna</div>
+          <div class="flip-dest-via">via East Falls Church</div>
+        </div>
+        <div>
+          <div class="flip-minutes">7</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+      <div class="flip-row">
+        <div class="flap-indicator silver">S</div>
+        <div>
+          <div class="flip-dest-name">Ashburn</div>
+          <div class="flip-dest-via">via Foggy Bottom · Rosslyn</div>
+        </div>
+        <div>
+          <div class="flip-minutes">11</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toward Glenmont / New Carrollton / Franconia-Springfield -->
+  <div class="platform">
+    <div class="section-header">Toward Glenmont · New Carrollton · Franconia-Springfield</div>
+    <div class="flip-board">
+      <div class="flip-row">
+        <div class="flap-indicator red">R</div>
+        <div>
+          <div class="flip-dest-name">Glenmont</div>
+          <div class="flip-dest-via">via Union Station · Rhode Island Ave</div>
+        </div>
+        <div>
+          <div class="flip-minutes">3</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+      <div class="flip-row">
+        <div class="flap-indicator blue">B</div>
+        <div>
+          <div class="flip-dest-name">Franconia-Springfield</div>
+          <div class="flip-dest-via">via Federal Triangle · Smithsonian</div>
+        </div>
+        <div>
+          <div class="flip-minutes">5</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+      <div class="flip-row">
+        <div class="flap-indicator orange">O</div>
+        <div>
+          <div class="flip-dest-name">New Carrollton</div>
+          <div class="flip-dest-via">via Stadium-Armory · Landover</div>
+        </div>
+        <div>
+          <div class="flip-minutes">8</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="section-header">Bus Bay</div>
+    <div class="flip-board">
+      <div class="flip-row">
+        <div class="flap-indicator bus-flap">30S</div>
+        <div>
+          <div class="flip-dest-name">Pentagon</div>
+          <div class="flip-dest-via">14th St Bridge</div>
+        </div>
+        <div>
+          <div class="flip-minutes">4</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+      <div class="flip-row">
+        <div class="flap-indicator bus-flap">X2</div>
+        <div>
+          <div class="flip-dest-name">Starburst</div>
+          <div class="flip-dest-via">Massachusetts Ave</div>
+        </div>
+        <div>
+          <div class="flip-minutes">6</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+      <div class="flip-row">
+        <div class="flap-indicator bus-flap">D6</div>
+        <div>
+          <div class="flip-dest-name">Union Station</div>
+          <div class="flip-dest-via">Constitution Ave</div>
+        </div>
+        <div>
+          <div class="flip-minutes">12</div>
+          <div class="flip-unit">min</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-strip">
+      <div class="status-led"></div>
+      <div class="status-text"><strong>All lines normal</strong> · Peak hours</div>
+    </div>
+
+    <div class="advisory-strip">
+      <span class="adv-label">⚠</span>
+      <strong>Orange Line</strong>: Minor delays East Falls Church–Vienna.
+    </div>
+
+    <div class="sidebar-footer">Mockup 03 · WMATA API · 20s</div>
+  </div>
+
+</div>
+
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="5"/>
+    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+</button>
+
+<script>
+  const toggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+  
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    html.setAttribute('data-mode', savedTheme);
+  }
+  
+  toggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-mode') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-mode', next);
+    localStorage.setItem('theme', next);
+  });
+  
+  function updateClock() {
+    const now = new Date();
+    const h = now.getHours() % 12;
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const ms = now.getMilliseconds();
+
+    const secondDeg = (s + ms / 1000) * 6;
+    const minuteDeg = (m + s / 60) * 6;
+    const hourDeg = (h + m / 60) * 30;
+
+    const clock = document.getElementById('analog-clock');
+    const hands = clock.querySelectorAll('.clock-hand');
+    hands[0].setAttribute('transform', `rotate(${hourDeg} 50 50)`);
+    hands[1].setAttribute('transform', `rotate(${minuteDeg} 50 50)`);
+    hands[2].setAttribute('transform', `rotate(${secondDeg} 50 50)`);
+  }
+  updateClock();
+  requestAnimationFrame(function tick() {
+    updateClock();
+    requestAnimationFrame(tick);
+  });
+  
+  // Flip animation on data update (simulated)
+  function triggerFlipAnimation() {
+    const rows = document.querySelectorAll('.flip-row');
+    rows.forEach((row, index) => {
+      setTimeout(() => {
+        row.style.animation = 'none';
+        row.offsetHeight; // Trigger reflow
+        row.style.animation = 'flipRow 0.5s ease';
+      }, index * 50);
+    });
+  }
+  
+  // Simulate data update every 20 seconds
+  setInterval(triggerFlipAnimation, 20000);
+</script>
+
+<style>
+  .theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: var(--row-bg);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .theme-toggle:hover {
+    background: var(--flap-border);
+    transform: scale(1.1);
+  }
+  
+  @keyframes flipRow {
+    0% { transform: perspective(400px) rotateX(0); opacity: 1; }
+    50% { transform: perspective(400px) rotateX(90deg); opacity: 0; }
+    51% { transform: perspective(400px) rotateX(-90deg); opacity: 0; }
+    100% { transform: perspective(400px) rotateX(0); opacity: 1; }
+  }
+</style>
+</body>
+</html>

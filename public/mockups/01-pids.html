@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIDS — Landscape Display</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Barlow+Condensed:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::after, *::before { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0A0A0A;
+    --surface: #111;
+    --row-bg: #1E1E1E;
+    --border: #2A2A2A;
+    --text: #E8E8E8;
+    --text-dim: #7A7A7A;
+    --red: #BF0D3B;
+    --orange: #ED8B00;
+    --silver: #939597;
+    --blue: #005EAA;
+    --yellow: #FFD100;
+    --green: #008A52;
+    --arriving: #FF3B30;
+    --on-time: #30D158;
+    --delayed: #FF9500;
+    --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+  [data-mode="light"] {
+    --bg: #F4F1EC;
+    --surface: #FFFFFF;
+    --row-bg: #E8E3DC;
+    --border: #D8D3CC;
+    --text: #1A1A1A;
+    --text-dim: #6B6560;
+    --arriving: #C44B3F;
+    --on-time: #16A34A;
+    --delayed: #D97706;
+    --amber: #3A2C26;
+  }
+  [data-mode="light"] body::after {
+    display: none;
+  }
+  [data-mode="light"] .wmata-logo path[fill="#E8E8E8"] {
+    fill: var(--amber);
+  }
+  [data-mode="light"] .wmata-logo path[fill="#0A0A0A"] {
+    fill: var(--bg);
+  }
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    font-weight: 500;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr 320px;
+    grid-template-rows: auto 1fr;
+    height: 100vh;
+    gap: 0;
+  }
+  /* Header spans full width */
+  .header {
+    grid-column: 1 / -1;
+    border-bottom: 2px solid var(--border);
+    padding: 18px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .wmata-logo {
+    width: 48px;
+    height: 54px;
+  }
+  .station-name {
+    font-size: 2.4rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+  [data-mode="light"] .station-name {
+    color: var(--amber);
+  }
+  .header-right {
+    text-align: right;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .clock {
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--text);
+    letter-spacing: 0.08em;
+  }
+  /* Platform columns */
+  .platform {
+    padding: 20px 24px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .platform-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .platform-label::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background: var(--text-dim);
+    transform: rotate(45deg);
+  }
+  .platform + .platform {
+    border-left: 1px solid var(--border);
+  }
+  /* Arrival rows */
+  .arrival-row {
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 10px;
+    border-bottom: 1px solid var(--border);
+    min-height: 72px;
+    background: var(--row-bg);
+  }
+  .arrival-row:last-child { border-bottom: none; }
+  @keyframes rowIn { to { opacity: 1; transform: translateY(0); } }
+  .line-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .line-badge.red { background: var(--red); }
+  .line-badge.orange { background: var(--orange); }
+  .line-badge.silver { background: var(--silver); color: #1a1a1a; text-shadow: none; }
+  .line-badge.blue { background: var(--blue); }
+  .line-badge.yellow { background: var(--yellow); color: #1a1a1a; text-shadow: none; }
+  .line-badge.green { background: var(--green); }
+  .line-badge.bus {
+    width: 56px;
+    height: 32px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  }
+  .line-badge.bus.route-30 { background: var(--green); }
+  .line-badge.bus.route-x { background: var(--yellow); color: #1a1a1a; text-shadow: none; }
+  .line-badge.bus.route-d { background: var(--blue); }
+  .line-badge.bus.route-n { background: var(--red); }
+  .line-badge.bus.route-w { background: var(--orange); }
+  .line-badge.bus.route-v { background: var(--silver); color: #1a1a1a; text-shadow: none; }
+  .line-badge.bus.route-default { background: #5A5A5A; }
+  .dest-info { min-width: 0; }
+  .dest-name {
+    font-size: 1.5rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .arr-time { text-align: right; min-width: 90px; }
+  .arr-min {
+    font-size: 2rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .arr-min.arriving {
+    color: var(--arriving);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .arr-unit {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 3px;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  /* Right sidebar */
+  .sidebar {
+    border-left: 1px solid var(--border);
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow: hidden;
+  }
+  .sidebar-section-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sidebar-section-label::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    background: var(--text-dim);
+    transform: rotate(45deg);
+  }
+  .sidebar-divider { height: 1px; background: var(--border); }
+  .status-bar {
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.75rem;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--on-time);
+    animation: blink 2s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .status-text { color: var(--text-dim); }
+  .status-text strong { color: var(--text); font-weight: 600; }
+  .alert-strip {
+    padding: 10px 14px;
+    background: rgba(255,149,0,0.08);
+    border-left: 3px solid var(--delayed);
+    font-size: 0.75rem;
+    color: var(--delayed);
+    line-height: 1.5;
+  }
+  .alert-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-right: 6px;
+  }
+  .sidebar-footer {
+    margin-top: auto;
+    font-size: 0.6rem;
+    color: #4A4A4A;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: var(--row-bg);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .theme-toggle:hover {
+    background: var(--border);
+    transform: scale(1.1);
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <div class="header">
+    <div class="header-left">
+      <svg class="wmata-logo" viewBox="0 0 81 105" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#clip0_2598_2135)">
+          <path d="M23.082 104.099H18.835V94.2998C18.835 93.1089 18.6005 92.2765 18.1556 91.8068C17.7015 91.3463 17.161 91.1119 16.5333 91.1119C15.4678 91.1119 14.7204 91.4299 14.2989 92.0548C13.8816 92.6817 13.6634 93.4723 13.6634 94.4195V104.099H9.41642V94.394C9.41642 94.049 9.40438 93.6827 9.3725 93.2966C9.33991 92.9113 9.25419 92.557 9.09834 92.229C8.9439 91.9138 8.69666 91.6425 8.34599 91.4306C7.99036 91.2167 7.50012 91.1126 6.876 91.1126C6.36877 91.1126 5.95646 91.1997 5.62279 91.357C5.28912 91.5178 5.02063 91.7395 4.82298 92.0264C4.62107 92.3084 4.47585 92.6413 4.38375 93.0232C4.28953 93.4128 4.24986 93.8265 4.24986 94.2665V104.099H0V87.9728H4.06779V90.3305H4.11951C4.25978 90.0634 4.44255 89.768 4.66641 89.4478C4.89382 89.129 5.18002 88.8194 5.54345 88.5417C5.90829 88.2618 6.34751 88.0196 6.86112 87.8255C7.3804 87.6391 7.99177 87.54 8.69737 87.54C9.2804 87.54 9.79331 87.603 10.2297 87.71C10.6611 87.8248 11.0557 87.9735 11.4036 88.1938C11.7592 88.4078 12.0787 88.6763 12.3486 88.9951C12.6214 89.3153 12.9019 89.6908 13.181 90.1144C13.3213 89.9104 13.5026 89.6617 13.7251 89.3677C13.9468 89.0808 14.2295 88.7995 14.5759 88.5289C14.9159 88.259 15.3183 88.0196 15.7951 87.8255C16.2719 87.6391 16.8372 87.54 17.4797 87.54C18.2647 87.54 19.0085 87.6561 19.6908 87.8928C20.3772 88.1216 20.9673 88.4659 21.4647 88.9214C21.9549 89.3819 22.353 89.9359 22.6406 90.606C22.9332 91.272 23.0834 92.0555 23.0834 92.9431V104.099L23.082 104.099Z" fill="#E8E8E8"/>
+          <path d="M40.984 96.447C40.984 94.6002 40.7332 93.1054 40.2415 91.9485C39.7492 90.7959 39.1215 89.8912 38.3762 89.2289C37.6338 88.5686 36.8092 88.123 35.9265 87.8942C35.0395 87.6625 34.1986 87.5414 33.4102 87.5414C32.2292 87.5414 31.2353 87.7008 30.3852 88.0097C29.5549 88.3327 28.8486 88.7351 28.2748 89.2281C27.6939 89.7198 27.2334 90.2752 26.8898 90.8901C26.5483 91.515 26.2898 92.1221 26.1105 92.7335C25.9256 93.3356 25.8094 93.8988 25.7521 94.433C25.7046 94.9622 25.6791 95.3815 25.6791 95.7032C25.6791 97.3644 25.8852 98.7565 26.3011 99.8872C26.7205 101.024 27.2823 101.935 28.0049 102.625C28.7147 103.31 29.5648 103.794 30.5424 104.094C31.5229 104.383 32.5799 104.534 33.7112 104.534C34.402 104.534 35.1047 104.447 35.8174 104.277C36.5343 104.104 37.2137 103.818 37.8648 103.415C38.5094 103.01 39.0946 102.481 39.6124 101.828C40.119 101.172 40.515 100.363 40.804 99.3955H36.4408C36.2765 99.9814 35.93 100.426 35.3938 100.71C34.8617 101.002 34.2985 101.154 33.7112 101.154C32.8618 101.154 32.191 101.002 31.6972 100.71C31.1999 100.426 30.8258 100.062 30.575 99.6385C30.325 99.212 30.1556 98.7721 30.0827 98.3279C29.9913 97.8816 29.9396 97.5047 29.924 97.2079H40.984V96.447ZM30.0536 94.44C30.1762 93.3675 30.5056 92.5294 31.0376 91.9343C31.576 91.3336 32.3433 91.0297 33.3514 91.0297C33.6978 91.0297 34.0527 91.0878 34.4133 91.2011C34.7796 91.3123 35.1118 91.4979 35.4143 91.7587C35.7168 92.0257 35.981 92.3757 36.2021 92.8121C36.4266 93.2456 36.5641 93.7954 36.6285 94.44H30.0536Z" fill="#E8E8E8"/>
+          <path d="M48.5797 87.9721H51.2179V91.0049H48.5797V99.7667C48.5797 100.009 48.5918 100.212 48.6116 100.372C48.6307 100.535 48.6966 100.663 48.8114 100.769C48.9198 100.865 49.0933 100.943 49.3363 100.994C49.58 101.043 49.9194 101.067 50.3359 101.067C50.4812 101.067 50.6221 101.067 50.7553 101.058C50.9027 101.046 51.0514 101.034 51.2186 101.016V104.21C50.8658 104.237 50.5428 104.257 50.2141 104.27C49.8988 104.279 49.5602 104.292 49.2131 104.292H48.6711C47.7615 104.292 47.0261 104.204 46.4544 104.029C45.887 103.862 45.4549 103.626 45.1368 103.322C44.8173 103.01 44.6076 102.656 44.4935 102.235C44.3858 101.798 44.3313 101.325 44.3313 100.799V91.0042H42.1529V87.9714H44.3313V83.6174H48.5797V87.9721Z" fill="#E8E8E8"/>
+          <path d="M53.8809 88.0054H57.9416V90.781H57.9961C58.225 90.38 58.463 89.9791 58.6996 89.6001C58.9447 89.2168 59.2387 88.8718 59.5809 88.5679C59.9273 88.2668 60.3233 88.0238 60.781 87.8425C61.2322 87.6618 61.7834 87.5718 62.4337 87.5718C62.5726 87.5718 62.7093 87.5782 62.8375 87.5839C62.9743 87.5959 63.1082 87.6066 63.2484 87.6299V91.9258C63.0678 91.8918 62.8659 91.8635 62.6434 91.8635H62.0335C61.2053 91.8635 60.5493 91.9896 60.04 92.2212C59.5391 92.4479 59.1403 92.7497 58.8541 93.128C58.57 93.5042 58.3794 93.9144 58.2816 94.3713C58.1796 94.8184 58.1272 95.2732 58.1272 95.7173V104.099H53.8802V88.0061L53.8809 88.0054Z" fill="#E8E8E8"/>
+          <path d="M79.9432 92.2623C79.4863 91.199 78.8792 90.3128 78.1226 89.6213C77.366 88.9221 76.4897 88.4028 75.5042 88.0614C74.5124 87.7142 73.4668 87.5407 72.3808 87.5407C71.2948 87.5407 70.2512 87.7142 69.2566 88.0614C68.2691 88.4028 67.397 88.9214 66.6425 89.6213C65.8795 90.3128 65.2774 91.1983 64.8226 92.2623C64.3734 93.3186 64.1446 94.5789 64.1446 96.0375C64.1446 97.4962 64.3734 98.7558 64.8226 99.8312C65.2774 100.901 65.8795 101.789 66.6425 102.484C67.3963 103.182 68.2691 103.703 69.2566 104.03C70.2519 104.369 71.2848 104.534 72.3808 104.534C73.4767 104.534 74.5124 104.37 75.5042 104.03C76.4897 103.703 77.366 103.182 78.1226 102.484C78.8792 101.789 79.4863 100.901 79.9432 99.8312C80.3945 98.7558 80.6162 97.4962 80.6162 96.0375C80.6162 94.5789 80.3952 93.3186 79.9432 92.2623ZM76.1128 97.6917C76.0157 98.2698 75.8259 98.8061 75.5432 99.2914C75.2726 99.7752 74.8801 100.176 74.3651 100.491C73.8508 100.807 73.2075 100.962 72.3815 100.962C71.5555 100.962 70.8895 100.807 70.3788 100.491C69.8744 100.176 69.489 99.7752 69.2099 99.2914C68.9435 98.8061 68.7487 98.2698 68.6502 97.6917C68.551 97.1179 68.5 96.5667 68.5 96.0375C68.5 95.5083 68.551 94.9947 68.6502 94.4096C68.7487 93.8372 68.9435 93.3044 69.2099 92.8128C69.489 92.3282 69.8744 91.9251 70.3788 91.6049C70.8895 91.2748 71.5732 91.1119 72.3815 91.1119C73.1898 91.1119 73.8508 91.2748 74.3651 91.6049C74.8801 91.9251 75.2726 92.3282 75.5432 92.8128C75.8259 93.3044 76.015 93.8372 76.1128 94.4096C76.2162 94.9947 76.263 95.5353 76.263 96.0375C76.263 96.5667 76.2162 97.1179 76.1128 97.6917Z" fill="#E8E8E8"/>
+          <path d="M78.6752 2.36214C77.4326 1.11885 75.7472 0.421051 73.9903 0.421051H6.62593C4.86832 0.421051 3.18297 1.11956 1.94038 2.36143C0.69851 3.60473 0 5.29008 0 7.04698V74.4121C0 76.169 0.69851 77.8543 1.94038 79.0969C3.18297 80.3388 4.86902 81.0373 6.62593 81.0373H73.9903C75.7479 81.0373 77.4326 80.3388 78.6752 79.0969C79.9177 77.8536 80.6162 76.169 80.6162 74.4121V7.04698C80.6162 5.29008 79.9177 3.60473 78.6752 2.36214Z" fill="#E8E8E8"/>
+          <path d="M73.9903 74.4121H60.7392V28.0292L47.4873 74.4121H33.131L19.8792 28.0292V74.4121H6.62592V7.04697H26.5044L40.3088 54.5343L54.1125 7.04697H73.9903V74.4121Z" fill="#0A0A0A"/>
+        </g>
+        <defs>
+          <clipPath id="clip0_2598_2135">
+            <rect width="81" height="105" fill="white"/>
+          </clipPath>
+        </defs>
+      </svg>
+      <div class="station-name">Metro Center</div>
+    </div>
+    <div class="header-right">
+      <div class="clock" id="clock">--:--:--</div>
+    </div>
+  </div>
+
+  <!-- Platform 1 -->
+  <div class="platform">
+    <div class="platform-label">Toward Shady Grove · Vienna · Ashburn</div>
+
+    <div class="arrival-row">
+      <div class="line-badge red">R</div>
+      <div class="dest-info">
+        <div class="dest-name">Shady Grove</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min arriving">ARR</div>
+        <div class="arr-unit">Arriving</div>
+      </div>
+    </div>
+
+    <div class="arrival-row">
+      <div class="line-badge silver">S</div>
+      <div class="dest-info">
+        <div class="dest-name">Ashburn</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">2</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+
+    <div class="arrival-row">
+      <div class="line-badge blue">B</div>
+      <div class="dest-info">
+        <div class="dest-name">Downtown Largo</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">4</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+
+    <div class="arrival-row">
+      <div class="line-badge orange">O</div>
+      <div class="dest-info">
+        <div class="dest-name">Vienna</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">7</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Platform 2 -->
+  <div class="platform">
+    <div class="platform-label">Toward Glenmont · New Carrollton · Franconia-Springfield</div>
+
+    <div class="arrival-row">
+      <div class="line-badge red">R</div>
+      <div class="dest-info">
+        <div class="dest-name">Glenmont</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">3</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+
+    <div class="arrival-row">
+      <div class="line-badge blue">B</div>
+      <div class="dest-info">
+        <div class="dest-name">Franconia-Springfield</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">5</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+
+    <div class="arrival-row">
+      <div class="line-badge orange">O</div>
+      <div class="dest-info">
+        <div class="dest-name">New Carrollton</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">8</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar: Buses + Status -->
+  <div class="sidebar">
+    <div class="sidebar-section-label">Bus Bay — Street Level</div>
+
+    <div class="arrival-row">
+      <div class="line-badge bus route-30">30S</div>
+      <div class="dest-info">
+        <div class="dest-name">Pentagon</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">4</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+
+    <div class="arrival-row">
+      <div class="line-badge bus route-x">X2</div>
+      <div class="dest-info">
+        <div class="dest-name">Starburst</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">6</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+
+    <div class="arrival-row">
+      <div class="line-badge bus route-d">D6</div>
+      <div class="dest-info">
+        <div class="dest-name">Union Station</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">12</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="status-bar">
+      <div class="status-dot"></div>
+      <div class="status-text"><strong>All lines normal</strong> · Peak</div>
+    </div>
+
+    <div class="alert-strip">
+      <span class="alert-label">Advisory</span>
+      Orange Line: Minor delays East Falls Church–Vienna, single-tracking.
+    </div>
+
+    <div class="sidebar-footer">Next Arriving Metro · Mockup 01</div>
+  </div>
+
+</div>
+
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="5"/>
+    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+</button>
+
+<script>
+  const toggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+  
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme) {
+    html.setAttribute('data-mode', savedTheme);
+  }
+  
+  toggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-mode') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-mode', next);
+    localStorage.setItem('theme', next);
+  });
+  
+  function updateClock() {
+    document.getElementById('clock').textContent =
+      new Date().toLocaleTimeString('en-US', { hour12: false });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>

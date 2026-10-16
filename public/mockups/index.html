@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UI Mockups — Next Arriving Metro</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: #111;
+    color: #e8e8e8;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .wrap { max-width: 520px; width: 100%; }
+  h1 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .sub { font-size: 0.85rem; color: #777; margin-bottom: 32px; }
+  .card {
+    display: block;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.2s, transform 0.15s;
+  }
+  .card:hover { border-color: #444; transform: translateY(-2px); }
+  .card-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .card-desc { font-size: 0.8rem; color: #888; line-height: 1.5; }
+  .tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #D4A03C;
+    margin-bottom: 6px;
+  }
+  .note {
+    margin-top: 28px;
+    font-size: 0.75rem;
+    color: #555;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>UI Mockups</h1>
+  <p class="sub">Three production directions for Next Arriving Metro</p>
+
+  <a class="card" href="01-pids.html">
+    <span class="tag">Mockup 01</span>
+    <div class="card-title">PIDS — Station Display</div>
+    <div class="card-desc">Faithful to WMATA's physical platform screens. Dark, monospace, data-dense. Feels like looking at the real thing.</div>
+  </a>
+
+  <a class="card" href="02-metro-card.html">
+    <span class="tag">Mockup 02</span>
+    <div class="card-title">Metro Card — Modern Glanceable</div>
+    <div class="card-desc">Mobile-first, app-like. Clean cards with a hero "next train" banner. Inspired by Metro Pulse and Citymapper.</div>
+  </a>
+
+  <a class="card" href="03-flip-board.html">
+    <span class="tag">Mockup 03</span>
+    <div class="card-title">Flip Board — Retro Mechanical</div>
+    <div class="card-desc">Vintage split-flap departure board aesthetic. Warm amber on dark, with character and nostalgia.</div>
+  </a>
+
+  <p class="note">All mockups use static mock data. They are self-contained HTML files served from <code>/mockups/</code>. Pick a direction and we'll build it for real.</p>
+</div>
+</body>
+</html>

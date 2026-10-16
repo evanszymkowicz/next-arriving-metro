@@ -7,7 +7,7 @@ const config = require('./config');
 const app = express();
 const KEY = process.env.WMATA_KEY;
 
-const cachce = {};
+const cache = {};
 
 async function fetchMetroData(path) {
 	const res = await fetch(`https://api.wmata.com${path}`,{
@@ -22,7 +22,7 @@ async function fetchMetroData(path) {
 async function updateRail() {
 	try {
 		const codes = config.station.codes.join(',');
-		const data = await fetchWMATA(`/StationPrediction.svc/json/GetPrediction/${codes}`);
+		const data = await fetchMetroData(`/StationPrediction.svc/json/GetPrediction/${codes}`);
 		cache.rail = { data: data.Trains,updated: Date.now(),error: null };
 	} catch (e) {
 		cache.rail.error = e.message;
@@ -35,7 +35,7 @@ async function updateBus() {
 	for (const route of config.bus.routes) {
 		for (const dir of route.directions) {
 			try {
-				const data = await fetchWMATA(
+				const data = await fetchMetroData(
 					`/NextBusService.svc/json/jPredictions?StopID=${dir.stopId}`
 				);
 				results.push({
@@ -57,6 +57,39 @@ async function updateBus() {
 	cache.bus = { data: results,updated: Date.now() };
 }
 
+
+// ponytail: stubs — implement when alerts/weather are needed
+async function updateRailAlerts() {
+	try {
+		const data = await fetchMetroData(`/Incidents.svc/json/incidents`);
+		cache.railAlerts = { data: data.Incidents || [], updated: Date.now(), error: null };
+	} catch (e) {
+		cache.railAlerts.error = e.message;
+		console.error('railAlerts:', e.message);
+	}
+}
+
+async function updateBusAlerts() {
+	try {
+		const data = await fetchMetroData(`/Incidents.svc/json/busincidents`);
+		cache.busAlerts = { data: data.BusIncidents || [], updated: Date.now(), error: null };
+	} catch (e) {
+		cache.busAlerts.error = e.message;
+		console.error('busAlerts:', e.message);
+	}
+}
+
+async function updateWeather() {
+	// ponytail: no weather endpoint wired, skip until needed
+	cache.weather = { data: null, updated: Date.now(), error: 'not implemented' };
+}
+
+// Initialize cache structure
+cache.rail = { data: [], updated: Date.now(), error: null };
+cache.bus = { data: [], updated: Date.now(), error: null };
+cache.railAlerts = { data: [], updated: Date.now(), error: null };
+cache.busAlerts = { data: [], updated: Date.now(), error: null };
+cache.weather = { data: null, updated: Date.now(), error: null };
 
 // Poll API endpoints on a schedule.
 updateRail(); setInterval(updateRail,20_000);
