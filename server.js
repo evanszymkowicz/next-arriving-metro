@@ -1,11 +1,14 @@
 require('dotenv').config();
 
 const express = require('express');
-const fetch = require('node-fetch');
 const config = require('./config');
 
 const app = express();
 const KEY = process.env.WMATA_KEY;
+if (!KEY) {
+	console.error('WMATA_KEY missing from .env');
+	process.exit(1);
+}
 
 const cache = {};
 
@@ -79,24 +82,17 @@ async function updateBusAlerts() {
 	}
 }
 
-async function updateWeather() {
-	// ponytail: no weather endpoint wired, skip until needed
-	cache.weather = { data: null, updated: Date.now(), error: 'not implemented' };
-}
-
 // Initialize cache structure
 cache.rail = { data: [], updated: Date.now(), error: null };
 cache.bus = { data: [], updated: Date.now(), error: null };
 cache.railAlerts = { data: [], updated: Date.now(), error: null };
 cache.busAlerts = { data: [], updated: Date.now(), error: null };
-cache.weather = { data: null, updated: Date.now(), error: null };
 
 // Poll API endpoints on a schedule.
 updateRail(); setInterval(updateRail,20_000);
 updateBus(); setInterval(updateBus,30_000);
 updateRailAlerts(); setInterval(updateRailAlerts,60_000);
 updateBusAlerts(); setInterval(updateBusAlerts,60_000);
-updateWeather(); setInterval(updateWeather,600_000);
 
 app.get('/api/arrivals',(req,res) => {
 	res.json({
@@ -108,9 +104,8 @@ app.get('/api/arrivals',(req,res) => {
 					(i.LinesAffected || '').includes(l))),
 			bus: (cache.busAlerts.data || [])
 				.filter(i => config.bus.routes.length === 0 ||
-					config.bus.routes.some(r => (i.RoutesAffected || []).includes(r)))
+					config.bus.routes.some(r => (i.RoutesAffected || []).includes(r.route)))
 		},
-		weather: cache.weather,
 		serverTime: Date.now()
 	});
 });

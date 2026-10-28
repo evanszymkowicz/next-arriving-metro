@@ -27,7 +27,7 @@ From the repo root:
 
 ```
 npm start          # node server.js
-npm run dev        # nodemon index.js
+npm run dev        # nodemon server.js
 npm test           # currently a placeholder — see project-overview.md
 ```
 
@@ -45,17 +45,22 @@ node -c <file>
 
 ## Agent tooling
 
-This repo ships harness-neutral skills, agent prompts, and hook cores. Harness-specific
-wiring (currently `.clinerules/`) is a thin shim over these files — treat them as canonical.
+This repo ships harness-neutral skills, agent prompts, and hook cores. The files under
+`skills/`, `agents/`, and `scripts/hooks/` are canonical — harness wiring is a thin shim
+over them.
 
 - **Agent prompts** (`agents/`): `code-scanner` (security/correctness audit of Node/Express
   and frontend code). Each is a self-contained task prompt — read the file and execute it as
   a focused subtask when its trigger applies.
-- **Skills** (`skills/<name>/SKILL.md`, pull-based — read when the trigger applies): the
-  feature workflow — `load` (point `current-feature.md` at a new feature spec), `start`
-  (begin implementation), `review` (check against goals/acceptance criteria), `test`
-  (syntax/tests/server smoke check), `explain` (document the diff), `complete` (change-log
-  entry + reset).
+- **Skills** (`skills/<name>/SKILL.md`): the feature workflow — `load` (point
+  `current-feature.md` at a new feature spec), `start` (begin implementation), `review`
+  (check against goals/acceptance criteria), `test` (syntax/tests/server smoke check),
+  `explain` (document the diff), `complete` (change-log entry + reset).
+  `load`, `start`, and `complete` are marked `opencode/autoinvoke: "false"` — they write
+  `context/current-feature.md` and `context/change-log/`, so they run **only** when the
+  user explicitly runs the matching command (`/load`, `/start`, `/complete`). Never
+  invoke them on your own initiative. `review`, `test`, and `explain` are read-only and
+  may be used when their trigger applies.
 - **Hooks** (`scripts/hooks/` + `.githooks/pre-commit`):
   `scripts/hooks/check-changed-file.mjs <path>` scans a just-edited file for leaked
   `WMATA_KEY` credentials and runs `node -c` on `.js` files. The pre-commit hook runs it

@@ -1,15 +1,14 @@
 {
   "dependencies": {
     "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "node-fetch": "^2.7.0"
+    "express": "^5.2.1"
   },
   "name": "next-arriving-metro",
   "description": "Application for next arriving WMATA train and bus.",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "node --watch server.js",
     "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -24,7 +23,5 @@
     "url": "https://github.com/evanszymkowicz/next-arriving-metro/issues"
   },
   "homepage": "https://github.com/evanszymkowicz/next-arriving-metro#readme",
-  "devDependencies": {
-    "nodemon": "^1.14.10"
-  }
+  "devDependencies": {}
 }

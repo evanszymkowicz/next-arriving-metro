@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poster — Next Arriving Metro</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #F4F1EC;
+    --panel-bg: #FFFFFF;
+    --panel-border: #1A1A1A;
+    --text: #1A1A1A;
+    --text-dim: #6B6560;
+    --rule: #1A1A1A;
+    --on-time: #16A34A;
+    --delayed: #D97706;
+    --arriving: #C44B3F;
+    --banner: #D2691E;
+    --font-main: 'Barlow Condensed', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  [data-mode="dark"] {
+    --bg: #0A0A0A;
+    --panel-bg: #111111;
+    --panel-border: #E8E8E8;
+    --text: #E8E8E8;
+    --text-dim: #7A7A7A;
+    --rule: #E8E8E8;
+    --on-time: #4ADE80;
+    --delayed: #F59E0B;
+    --arriving: #EF4444;
+    --banner: #D2691E;
+  }
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+    font-weight: 500;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+  }
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 24px 32px 18px;
+    border-bottom: 3px solid var(--rule);
+  }
+  .station-name {
+    font-family: var(--font-main);
+    font-size: 4rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  .header-right {
+    text-align: right;
+  }
+  .clock {
+    font-family: var(--font-mono);
+    font-size: 2.4rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    line-height: 1;
+  }
+  .status-ok {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--on-time);
+    letter-spacing: 0.12em;
+    margin-top: 6px;
+  }
+  .panel {
+    padding: 32px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel-bg);
+    border: 2px solid var(--panel-border);
+    margin: 16px;
+  }
+  .panel + .panel { margin-left: 0; }
+  .panel-title {
+    font-family: var(--font-main);
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 20px;
+  }
+  .direction-group { margin-bottom: 6px; }
+  .direction-group + .direction-group {
+    border-top: 1px dashed var(--rule);
+    padding-top: 20px;
+    margin-top: 20px;
+  }
+  .direction-label {
+    font-family: var(--font-main);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 14px;
+  }
+  .arrival-row {
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    align-items: center;
+    gap: 18px;
+    padding: 16px 14px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  [data-mode="dark"] .arrival-row { border-bottom-color: rgba(255,255,255,0.06); }
+  .arrival-row:last-child { border-bottom: none; }
+  .line-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-main);
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #fff;
+  }
+  .line-badge.red { background: #BF0D3B; }
+  .line-badge.orange { background: #ED8B00; }
+  .line-badge.silver { background: #939597; color: #1a1a1a; }
+  .line-badge.blue { background: #005EAA; }
+  .line-badge.yellow { background: #FFD100; color: #1a1a1a; }
+  .line-badge.green { background: #008A52; }
+  .line-badge.bus {
+    width: auto;
+    min-width: 56px;
+    height: 32px;
+    border-radius: 16px;
+    padding: 0 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .line-badge.bus.route-30 { background: #008A52; }
+  .line-badge.bus.route-x { background: #FFD100; color: #1a1a1a; }
+  .line-badge.bus.route-d { background: #005EAA; }
+  .dest-info { min-width: 0; }
+  .dest-name {
+    font-family: var(--font-main);
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dest-via {
+    font-family: var(--font-main);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 3px;
+  }
+  .arr-time { text-align: right; min-width: 90px; }
+  .arr-min {
+    font-family: var(--font-mono);
+    font-size: 2.4rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .arr-min.arriving {
+    color: var(--arriving);
+    font-weight: 800;
+  }
+  .arr-unit {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+  }
+  .alert-banner {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px 32px;
+    background: var(--banner);
+    color: #fff;
+  }
+  .alert-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .alert-text {
+    font-family: var(--font-main);
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+  .alert-text strong { font-weight: 700; }
+  .theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    color: var(--text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+    z-index: 10;
+  }
+  .theme-toggle:hover { background: var(--rule); transform: scale(1.1); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="header">
+    <div class="station-name">Metro Center</div>
+    <div class="header-right">
+      <div class="clock" id="clock">--:--</div>
+      <div class="status-ok">ALL LINES NORMAL</div>
+    </div>
+  </header>
+  <section class="panel">
+    <div class="panel-title">Trains</div>
+    <div class="direction-group">
+      <div class="direction-label">Toward Shady Grove · Vienna · Ashburn</div>
+      <div class="arrival-row">
+        <div class="line-badge red">R</div>
+        <div class="dest-info">
+          <div class="dest-name">Shady Grove</div>
+          <div class="dest-via">Via Farragut North</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min arriving">ARR</div>
+          <div class="arr-unit">Now</div>
+        </div>
+      </div>
+      <div class="arrival-row">
+        <div class="line-badge silver">S</div>
+        <div class="dest-info">
+          <div class="dest-name">Ashburn</div>
+          <div class="dest-via">Via Rosslyn</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min">2</div>
+          <div class="arr-unit">min</div>
+        </div>
+      </div>
+      <div class="arrival-row">
+        <div class="line-badge blue">B</div>
+        <div class="dest-info">
+          <div class="dest-name">Downtown Largo</div>
+          <div class="dest-via">Via Gallery Place</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min">5</div>
+          <div class="arr-unit">min</div>
+        </div>
+      </div>
+    </div>
+    <div class="direction-group">
+      <div class="direction-label">Toward Glenmont · New Carrollton · Franconia-Springfield</div>
+      <div class="arrival-row">
+        <div class="line-badge red">R</div>
+        <div class="dest-info">
+          <div class="dest-name">Glenmont</div>
+          <div class="dest-via">Via Union Station</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min">3</div>
+          <div class="arr-unit">min</div>
+        </div>
+      </div>
+      <div class="arrival-row">
+        <div class="line-badge orange">O</div>
+        <div class="dest-info">
+          <div class="dest-name">New Carrollton</div>
+          <div class="dest-via">Via Stadium-Armory</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min">8</div>
+          <div class="arr-unit">min</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-title">Buses</div>
+    <div class="arrival-row">
+      <div class="line-badge bus route-30">30S</div>
+      <div class="dest-info">
+        <div class="dest-name">Pentagon</div>
+        <div class="dest-via">14th St Bridge</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">4</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+    <div class="arrival-row">
+      <div class="line-badge bus route-x">X2</div>
+      <div class="dest-info">
+        <div class="dest-name">Starburst</div>
+        <div class="dest-via">Massachusetts Ave</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">6</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+    <div class="arrival-row">
+      <div class="line-badge bus route-d">D6</div>
+      <div class="dest-info">
+        <div class="dest-name">Union Station</div>
+        <div class="dest-via">Constitution Ave</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">12</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+  </section>
+  <footer class="alert-banner">
+    <div class="alert-icon">!</div>
+    <div class="alert-text"><strong>Advisory:</strong> Orange Line — Minor delays possible between East Falls Church and Vienna due to single-tracking.</div>
+  </footer>
+</div>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="5"/>
+    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+</button>
+<script>
+  const toggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+  const savedTheme = localStorage.getItem('poster-theme');
+  if (savedTheme) html.setAttribute('data-mode', savedTheme);
+  toggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-mode') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-mode', next);
+    localStorage.setItem('poster-theme', next);
+  });
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('clock').textContent = `${h}:${m}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>

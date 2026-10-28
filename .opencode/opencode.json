@@ -10,28 +10,28 @@
     ]
   },
   "mcp": {
-    "playwright": {
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "@playwright/mcp@latest",
-        "--browser",
-        "chromium"
-      ],
-      "enabled": true,
-      "environment": {}
-    },
-    "context7": {
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "@upstash/context7-mcp@latest"
-      ],
-      "enabled": true,
-      "environment": {
-        "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+    "servers": {
+      "playwright": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "@playwright/mcp@latest",
+          "--browser",
+          "chromium"
+        ],
+        "environment": {}
+      },
+      "context7": {
+        "type": "local",
+        "command": [
+          "npx",
+          "-y",
+          "@upstash/context7-mcp@latest"
+        ],
+        "environment": {
+          "CONTEXT7_API_KEY": "{env:CONTEXT7_API_KEY}"
+        }
       }
     }
   }

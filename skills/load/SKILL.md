@@ -1,6 +1,8 @@
 ---
 name: load
 description: Use when starting work on a new feature — loads its spec from context/features/ (or an inline description) into context/current-feature.md, the single pointer for what's in flight.
+metadata:
+  opencode/autoinvoke: "false"
 ---
 
 # Load a Feature

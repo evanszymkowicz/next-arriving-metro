@@ -3,6 +3,7 @@ module.exports = {
 	station: {
 		codes: ['E04'],	// Transfer stations will use two (e.g. ['A01', 'C01']).
 		name: 'Columbia Heights',
+		lines: ['GR', 'YL'],	// Green and Yellow lines serve this station
 		directions: {
 			'1': 'Toward Branch Ave/Huntington',
 			'2': 'Toward Greenbelt/Mt Vernon Sq'

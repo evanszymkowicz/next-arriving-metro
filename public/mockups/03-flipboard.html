@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flipboard — Next Arriving Metro</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #F5F0E8;
+    --panel-bg: #FFFFFF;
+    --panel-border: #D8D3CC;
+    --text: #1A1A1A;
+    --text-dim: #6B6560;
+    --amber: #3A2C26;
+    --amber-dim: #8C836E;
+    --green: #5E9E54;
+    --font-main: 'Archivo', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+  }
+  [data-mode="dark"] {
+    --bg: #0F0E0C;
+    --panel-bg: #1A1815;
+    --panel-border: #2E2B24;
+    --text: #E8DFC8;
+    --text-dim: #8C836E;
+    --amber: #D4A03C;
+    --amber-dim: #9E7A2E;
+    --green: #5E9E54;
+  }
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-main);
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1fr auto;
+    height: 100vh;
+  }
+  .header {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .analog-clock {
+    width: 90px;
+    height: 90px;
+  }
+  .clock-bezel {
+    fill: none;
+    stroke: var(--text);
+    stroke-width: 2;
+  }
+  .clock-face {
+    fill: var(--bg);
+    stroke: var(--text);
+    stroke-width: 0.5;
+  }
+  .clock-hand {
+    stroke: var(--text);
+    stroke-linecap: round;
+  }
+  .clock-hand.second { stroke: #C44B3F; stroke-width: 1; }
+  .station-name {
+    font-size: 2.4rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+  .header-right {
+    font-family: var(--font-mono);
+    font-size: 1.4rem;
+    color: var(--text);
+    letter-spacing: 0.06em;
+  }
+  .panel {
+    padding: 24px 28px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .panel + .panel { border-left: 1px solid var(--panel-border); }
+  .panel-title {
+    font-family: var(--font-main);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--panel-border);
+  }
+  .direction-group { margin-bottom: 6px; }
+  .direction-group + .direction-group {
+    border-top: 1px dashed var(--panel-border);
+    padding-top: 16px;
+    margin-top: 16px;
+  }
+  .direction-label {
+    font-family: var(--font-main);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .direction-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--panel-border);
+  }
+  .arrival-row {
+    display: grid;
+    grid-template-columns: 44px 1fr auto;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 14px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    margin-bottom: 10px;
+  }
+  .line-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #fff;
+  }
+  .line-badge.red { background-color: #BF0D3B; }
+  .line-badge.orange { background-color: #ED8B00; }
+  .line-badge.silver { background-color: #939597; }
+  .line-badge.blue { background-color: #005EAA; }
+  .line-badge.yellow { background-color: #FFD100; color: #1a1a1a; }
+  .line-badge.green { background-color: #008A52; }
+  .line-badge.bus {
+    width: 44px;
+    height: 30px;
+    background-color: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--panel-border);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .dest-info { min-width: 0; }
+  .dest-name {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .dest-via {
+    font-family: var(--font-main);
+    font-size: 0.7rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+    letter-spacing: 0.01em;
+  }
+  .arr-time { text-align: right; min-width: 75px; }
+  .arr-min {
+    font-family: var(--font-mono);
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: var(--amber);
+    line-height: 1;
+  }
+  .arr-min.arriving {
+    color: #C44B3F;
+    font-weight: 700;
+  }
+  .arr-unit {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-top: 3px;
+  }
+  .alert-banner {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 32px;
+    border-top: 1px solid var(--panel-border);
+  }
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+  .status-text {
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+  }
+  .status-text strong { color: var(--text); font-weight: 500; }
+  .alert-strip {
+    flex: 1;
+    padding: 12px 14px;
+    background: rgba(212,160,60,0.08);
+    border-left: 3px solid var(--amber);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--amber);
+    line-height: 1.4;
+  }
+  .alert-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-right: 6px;
+  }
+  .theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    color: var(--amber);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, transform 0.2s;
+    z-index: 10;
+  }
+  .theme-toggle:hover { background: var(--panel-border); transform: scale(1.08); }
+</style>
+</head>
+<body>
+<div class="layout">
+  <header class="header">
+    <div class="header-left">
+      <svg class="analog-clock" viewBox="0 0 100 100" id="analog-clock">
+        <circle class="clock-bezel" cx="50" cy="50" r="48"/>
+        <circle class="clock-face" cx="50" cy="50" r="45"/>
+        <line class="clock-hand hour" x1="50" y1="50" x2="50" y2="30" stroke-width="3"/>
+        <line class="clock-hand minute" x1="50" y1="50" x2="50" y2="20" stroke-width="2"/>
+        <line class="clock-hand second" x1="50" y1="55" x2="50" y2="15"/>
+      </svg>
+      <div class="station-name">Metro Center</div>
+    </div>
+    <div class="header-right" id="digital-clock">--:--</div>
+  </header>
+  <section class="panel">
+    <div class="panel-title">Trains</div>
+    <div class="direction-group">
+      <div class="direction-label">Toward Shady Grove · Vienna · Ashburn</div>
+      <div class="arrival-row">
+        <div class="line-badge red">R</div>
+        <div class="dest-info">
+          <div class="dest-name">Shady Grove</div>
+          <div class="dest-via">via Farragut North · Dupont Circle</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min arriving">ARR</div>
+          <div class="arr-unit">Arriving</div>
+        </div>
+      </div>
+      <div class="arrival-row">
+        <div class="line-badge silver">S</div>
+        <div class="dest-info">
+          <div class="dest-name">Ashburn</div>
+          <div class="dest-via">via Foggy Bottom · Rosslyn</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min">2</div>
+          <div class="arr-unit">min</div>
+        </div>
+      </div>
+      <div class="arrival-row">
+        <div class="line-badge blue">B</div>
+        <div class="dest-info">
+          <div class="dest-name">Downtown Largo</div>
+          <div class="dest-via">via Gallery Place · Judiciary Square</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min">5</div>
+          <div class="arr-unit">min</div>
+        </div>
+      </div>
+    </div>
+    <div class="direction-group">
+      <div class="direction-label">Toward Glenmont · New Carrollton · Franconia-Springfield</div>
+      <div class="arrival-row">
+        <div class="line-badge red">R</div>
+        <div class="dest-info">
+          <div class="dest-name">Glenmont</div>
+          <div class="dest-via">via Union Station · Rhode Island Ave</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min">3</div>
+          <div class="arr-unit">min</div>
+        </div>
+      </div>
+      <div class="arrival-row">
+        <div class="line-badge orange">O</div>
+        <div class="dest-info">
+          <div class="dest-name">New Carrollton</div>
+          <div class="dest-via">via Federal Triangle · Smithsonian</div>
+        </div>
+        <div class="arr-time">
+          <div class="arr-min">8</div>
+          <div class="arr-unit">min</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel-title">Bus Bay</div>
+    <div class="arrival-row">
+      <div class="line-badge bus">30S</div>
+      <div class="dest-info">
+        <div class="dest-name">Pentagon</div>
+        <div class="dest-via">14th St Bridge</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">4</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+    <div class="arrival-row">
+      <div class="line-badge bus">X2</div>
+      <div class="dest-info">
+        <div class="dest-name">Starburst</div>
+        <div class="dest-via">Massachusetts Ave</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">6</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+    <div class="arrival-row">
+      <div class="line-badge bus">D6</div>
+      <div class="dest-info">
+        <div class="dest-name">Union Station</div>
+        <div class="dest-via">Constitution Ave</div>
+      </div>
+      <div class="arr-time">
+        <div class="arr-min">12</div>
+        <div class="arr-unit">min</div>
+      </div>
+    </div>
+  </section>
+  <footer class="alert-banner">
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      <div class="status-text"><strong>All lines normal</strong> · Peak hours</div>
+    </div>
+    <div class="alert-strip">
+      <span class="alert-label"></span>
+      Orange Line: Minor delays East Falls Church–Vienna, single-tracking.
+    </div>
+  </footer>
+</div>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle light/dark mode">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <circle cx="12" cy="12" r="5"/>
+    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </svg>
+</button>
+<script>
+  const toggle = document.getElementById('theme-toggle');
+  const html = document.documentElement;
+  const savedTheme = localStorage.getItem('flipboard-theme');
+  if (savedTheme) html.setAttribute('data-mode', savedTheme);
+  toggle.addEventListener('click', () => {
+    const current = html.getAttribute('data-mode') || 'light';
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-mode', next);
+    localStorage.setItem('flipboard-theme', next);
+  });
+  function updateClock() {
+    const now = new Date();
+    const h = now.getHours() % 12;
+    const m = now.getMinutes();
+    const s = now.getSeconds();
+    const hourDeg = (h + m / 60) * 30;
+    const minuteDeg = (m + s / 60) * 6;
+    const secondDeg = s * 6;
+    const clock = document.getElementById('analog-clock');
+    const hands = clock.querySelectorAll('.clock-hand');
+    hands[0].setAttribute('transform', `rotate(${hourDeg} 50 50)`);
+    hands[1].setAttribute('transform', `rotate(${minuteDeg} 50 50)`);
+    hands[2].setAttribute('transform', `rotate(${secondDeg} 50 50)`);
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('digital-clock').textContent = `${hh}:${mm}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+</script>
+</body>
+</html>

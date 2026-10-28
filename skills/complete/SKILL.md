@@ -1,6 +1,8 @@
 ---
 name: complete
 description: Use once a feature has passed review — records its outcome in context/change-log/, resets context/current-feature.md, and hands git operations back to the user.
+metadata:
+  opencode/autoinvoke: "false"
 ---
 
 # Complete a Feature

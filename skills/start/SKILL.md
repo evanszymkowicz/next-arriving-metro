@@ -1,6 +1,8 @@
 ---
 name: start
 description: Use when beginning implementation of the feature already loaded into context/current-feature.md — sets it In Progress and works through its Next Steps one by one.
+metadata:
+  opencode/autoinvoke: "false"
 ---
 
 # Start Implementation
